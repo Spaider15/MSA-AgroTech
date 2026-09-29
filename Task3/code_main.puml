@@ -1,0 +1,60 @@
+@startuml code_main
+title C4. Основное решение: оповещение об инциденте (Агент фермы)
+skinparam classAttributeIconSize 0
+hide empty members
+
+class DetectionReceiver <<gRPC>> {
+  +onDetection(d: Detection)
+}
+class Detection {
+  +cameraId: String
+  +type: DetectionType
+  +confidence: double
+  +time: Instant
+}
+class IncidentRules {
+  +evaluate(d: Detection): Incident?
+}
+class Incident {
+  +id: UUID
+  +type: IncidentType
+  +penId: String
+  +status: IncidentStatus
+}
+class NotificationService {
+  +notify(i: Incident)
+}
+interface NotificationChannel {
+  +send(dutyId: String, i: Incident): boolean
+}
+class LocalPushChannel
+class SmsChannel
+class OutboxRepository <<PostgreSQL>> {
+  +save(event)
+  +findNotSent(): List
+  +markSent(id)
+}
+class SyncPublisher <<AMQP>> {
+  +publishPending()
+}
+
+DetectionReceiver --> IncidentRules
+IncidentRules ..> Detection
+IncidentRules --> Incident : создаёт
+IncidentRules --> NotificationService : инцидент
+NotificationService --> NotificationChannel
+NotificationChannel <|.. LocalPushChannel
+NotificationChannel <|.. SmsChannel
+NotificationService --> OutboxRepository : событие инцидента
+SyncPublisher --> OutboxRepository
+
+note right of NotificationService
+  Сначала локальная сеть,
+  нет подтверждения или нет сети - SMS.
+  Не ждёт отправки в центр.
+end note
+note bottom of SyncPublisher
+  Отправляет при появлении связи,
+  повторяет при сбое.
+end note
+@enduml

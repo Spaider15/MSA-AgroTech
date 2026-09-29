@@ -1,0 +1,29 @@
+@startuml context_main
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title C1. Основное решение: отдельная платформа "центр - агенты ферм"
+
+LAYOUT_TOP_DOWN()
+
+Person(operator, "Дежурный сотрудник", "Получает оповещения на ферме")
+Person(manager, "Руководитель / администратор", "Смотрит фермы, управляет кормлением, ролями и метриками")
+
+System(agent, "Агент фермы (N шт.)", "Сервер фермы + edge. Видеоаналитика, оповещения, кормушки и поилки, вода, запасы корма. Работает без интернета")
+System(central, "Центральная платформа", "Сбор данных с ферм, конфигурация агентам, API и приложения, роли и доступ")
+
+System_Ext(equipment, "Оборудование фермы", "Камеры, кормушки, поилки, фильтры воды, датчики корма")
+System_Ext(model, "Партнёр", "Нейросетевая модель")
+System_Ext(sms, "Мобильная связь", "SMS, резервный канал")
+System_Ext(digital, "АгроПром Х - Цифровая платформа", "Kafka, 1С:Агро, DWH, BI")
+
+Rel(equipment, agent, "Видео, телеметрия / команды")
+Rel(agent, operator, "Оповещения до 5 сек")
+Rel(agent, sms, "SMS без интернета")
+Rel(sms, operator, "SMS")
+Rel(agent, central, "Данные ферм, до 10 мин")
+Rel(central, agent, "Конфигурация, модель")
+Rel(model, central, "Версии модели")
+Rel(manager, central, "Работает через приложение")
+Rel(central, digital, "Метрики (Kafka), потребность в корме (1С, REST)")
+
+@enduml

@@ -1,0 +1,31 @@
+@startuml context_alternative
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title C1. Альтернатива: модуль в существующей Цифровой платформе
+
+LAYOUT_TOP_DOWN()
+
+AddElementTag("changed", $bgColor="#d9822b", $legendText="существующая система, дорабатываем")
+
+Person(operator, "Дежурный сотрудник", "Получает оповещения на ферме")
+Person(manager, "Руководитель / администратор", "Работает через портал и мобильное приложение")
+
+System(agent, "Edge-агент фермы (N шт.)", "Только видеоаналитика, оповещения и буфер данных")
+System_Ext(digital, "АгроПром Х - Цифровая платформа", "Новый модуль мониторинга скота + IoT-платформа, портал, мобильное приложение, Kafka", $tags="changed")
+
+System_Ext(cameras, "Видеокамеры", "Разные производители")
+System_Ext(equipment, "Оборудование фермы", "Кормушки, поилки, фильтры воды, датчики корма")
+System_Ext(model, "Партнёр", "Нейросетевая модель")
+System_Ext(sms, "Мобильная связь", "SMS")
+
+Rel(cameras, agent, "Видео")
+Rel(agent, operator, "Оповещения до 5 сек")
+Rel(agent, sms, "SMS без интернета")
+Rel(sms, operator, "SMS")
+Rel(agent, digital, "События, досылка после связи")
+Rel(digital, agent, "Конфигурация, модель")
+Rel(equipment, digital, "Телеметрия / команды через интернет")
+Rel(model, digital, "Версии модели")
+Rel(manager, digital, "Работает через портал")
+
+@enduml
