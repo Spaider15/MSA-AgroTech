@@ -1,0 +1,48 @@
+@startuml component_main
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title C3. Основное решение: Агент фермы
+
+LAYOUT_TOP_DOWN()
+
+Person(operator, "Дежурный сотрудник")
+Container_Ext(video, "Видеоаналитика", "Edge-устройство")
+ContainerQueue_Ext(localmq, "Локальный брокер", "RabbitMQ + MQTT")
+ContainerDb_Ext(localdb, "БД фермы", "PostgreSQL")
+ContainerQueue_Ext(mq, "Брокер агентов (центр)", "RabbitMQ")
+System_Ext(sms, "Мобильная связь", "SMS")
+
+Container_Boundary(agent, "Агент фермы") {
+  Component(detections, "Приём детекций", "gRPC", "Принимает детекции от видеоаналитики")
+  Component(rules, "Правила инцидентов", "", "Из детекций и аварий делает инциденты")
+  Component(notify, "Оповещения", "", "Выбирает дежурного и канал, повторяет при недоставке")
+  Component(devices, "Адаптеры оборудования", "", "Кормушки, поилки, фильтры, датчики корма разных производителей")
+  Component(feeding, "Кормление", "", "Режимы кормушек и поилок, учёт запасов корма")
+  Component(water, "Контроль воды", "", "Состояние фильтров, аварии")
+  Component(sync, "Синхронизация", "Outbox", "Досылает данные в центр, принимает конфигурацию")
+  Component(config, "Конфигурация", "", "Правила, режимы, свои метрики, версия модели")
+}
+
+Rel(video, detections, "Детекции", "gRPC")
+Rel(detections, rules, "")
+Rel(rules, notify, "Инцидент")
+Rel(notify, operator, "Оповещение до 5 сек", "локальная сеть")
+Rel(notify, sms, "SMS без интернета")
+
+Rel(localmq, devices, "Телеметрия", "MQTT")
+Rel(devices, localmq, "Команды", "MQTT")
+Rel(devices, feeding, "Кормушки, поилки, корм")
+Rel(devices, water, "Фильтры")
+Rel(feeding, devices, "Команды")
+Rel(water, rules, "Авария")
+
+Rel(rules, sync, "Инциденты, поголовье")
+Rel(feeding, sync, "Запасы корма")
+Rel(sync, localdb, "Outbox", "SQL")
+Rel(sync, mq, "Данные до 10 мин", "AMQP")
+Rel(mq, sync, "Конфигурация", "AMQP")
+Rel(sync, config, "Обновляет")
+Rel(config, rules, "")
+Rel(config, feeding, "")
+
+@enduml

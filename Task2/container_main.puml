@@ -1,0 +1,49 @@
+@startuml container_main
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title C2. Основное решение: отдельная платформа "центр - агенты ферм"
+
+LAYOUT_TOP_DOWN()
+
+Person(operator, "Дежурный сотрудник", "Получает оповещения")
+Person(manager, "Руководитель / администратор", "Фермы, кормление, роли, метрики")
+
+System_Ext(equipment, "Оборудование фермы", "Камеры, кормушки, поилки, фильтры, датчики корма")
+System_Ext(sms, "Мобильная связь", "SMS, резервный канал 4G")
+System_Ext(digital, "АгроПром Х - Цифровая платформа", "Kafka, 1С:Агро, DWH, BI")
+
+System_Boundary(farm, "Ферма (N шт.)") {
+  Container(video, "Видеоаналитика", "Edge-устройство", "Модель партнёра: драки, задавливание, болезнь, гибель, подсчёт")
+  Container(agent, "Агент фермы", "Сервер фермы", "Инциденты и оповещения, управление оборудованием, синхронизация с центром")
+  ContainerQueue(localmq, "Локальный брокер", "RabbitMQ + MQTT")
+  ContainerDb(localdb, "БД фермы", "PostgreSQL", "Данные фермы, outbox")
+}
+
+System_Boundary(central, "Центральная платформа") {
+  Container(app, "Веб- и мобильное приложение")
+  Container(iam, "Сервис авторизации", "", "Вход, роли")
+  Container(core, "Центральный сервис", "REST API", "Фермы и конфигурация, поголовье, прогноз корма, метрики, версии модели")
+  ContainerQueue(mq, "Брокер агентов", "RabbitMQ", "Очередь на каждого агента")
+  ContainerDb(db, "Хранилища", "PostgreSQL, MinIO (S3)")
+}
+
+Rel(equipment, video, "Видео", "RTSP")
+Rel(video, agent, "Детекции, мс", "gRPC")
+Rel(equipment, localmq, "Телеметрия / команды", "MQTT")
+Rel(localmq, agent, "")
+Rel(agent, localdb, "")
+Rel(agent, operator, "Оповещение до 5 сек")
+Rel(agent, sms, "SMS без интернета")
+
+Rel(agent, mq, "Данные до 10 мин, досылка", "AMQP")
+Rel(mq, agent, "Конфигурация, режимы, модель", "AMQP")
+Rel(mq, core, "")
+Rel(core, db, "")
+
+Rel(manager, app, "Использует")
+Rel(app, core, "", "REST")
+Rel(app, iam, "Вход")
+Rel(core, digital, "Метрики", "Kafka")
+Rel(core, digital, "Потребность в корме в 1С", "REST")
+
+@enduml

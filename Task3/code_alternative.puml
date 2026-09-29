@@ -1,0 +1,38 @@
+@startuml code_alternative
+title C4. Альтернатива: команда кормушке
+skinparam classAttributeIconSize 0
+hide empty members
+
+class FeedingService {
+  +setMode(feederId, mode)
+  +retryNotConfirmed()
+}
+class FeederCommand {
+  +id: UUID
+  +feederId: String
+  +mode: String
+  +status: CommandStatus
+}
+enum CommandStatus {
+  SENT
+  CONFIRMED
+  FAILED
+}
+class CommandRepository <<PostgreSQL>> {
+  +save(c)
+  +findNotConfirmed(): List
+}
+class CommandPublisher <<Kafka>> {
+  +publish(c)
+}
+
+FeedingService --> FeederCommand : создаёт
+FeederCommand --> CommandStatus
+FeedingService --> CommandRepository
+FeedingService --> CommandPublisher
+
+note bottom of FeedingService
+  В Kafka нет повторов для команд,
+  поэтому переотправляем сами.
+end note
+@enduml

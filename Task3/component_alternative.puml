@@ -1,0 +1,31 @@
+@startuml component_alternative
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title C3. Альтернатива: Модуль мониторинга скота
+
+Container_Ext(portal, "Веб-портал и мобильное приложение")
+Container_Ext(iam, "Сервис авторизации")
+ContainerQueue_Ext(kafka, "Kafka")
+Container_Ext(erp, "1С:Агро")
+ContainerDb_Ext(db, "БД модуля", "PostgreSQL")
+
+Container_Boundary(module, "Модуль мониторинга скота") {
+  Component(api, "REST API", "", "Запросы портала")
+  Component(monitoring, "Мониторинг", "", "Поголовье, вода, прогноз корма, фермы")
+  Component(feeding, "Кормление", "", "Режимы, команды кормушкам с повтором")
+  Component(bus, "Интеграция с Kafka", "", "Приём событий, отправка команд и конфигурации")
+}
+
+Rel(portal, api, "", "REST")
+Rel(api, iam, "Проверка прав")
+Rel(api, monitoring, "")
+Rel(api, feeding, "")
+Rel(kafka, bus, "События, телеметрия")
+Rel(bus, kafka, "Команды, конфигурация")
+Rel(bus, monitoring, "События")
+Rel(feeding, bus, "Команды")
+Rel(monitoring, erp, "Потребность в корме", "REST")
+Rel(monitoring, db, "", "SQL")
+Rel(feeding, db, "", "SQL")
+
+@enduml

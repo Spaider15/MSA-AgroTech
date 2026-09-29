@@ -1,0 +1,52 @@
+@startuml container_alternative
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title C2. Альтернатива: модуль мониторинга в Цифровой платформе
+
+LAYOUT_TOP_DOWN()
+
+AddElementTag("changed", $bgColor="#d9822b", $legendText="существующее, дорабатываем")
+AddElementTag("existing", $bgColor="#6b8e23", $legendText="существующее без изменений")
+
+Person(operator, "Дежурный сотрудник", "Получает оповещения")
+Person(manager, "Руководитель / администратор", "Фермы, кормление, роли, метрики")
+
+System_Ext(cameras, "Видеокамеры", "Разные производители")
+System_Ext(equipment, "Оборудование фермы", "Кормушки, поилки, фильтры, датчики корма")
+System_Ext(sms, "Мобильная связь", "SMS")
+
+System_Boundary(farm, "Ферма (N шт.)") {
+  Container(video, "Видеоаналитика", "Edge-устройство", "Модель партнёра")
+  Container(edge, "Edge-агент", "Сервер фермы + PostgreSQL", "Инциденты, оповещения, буфер данных")
+}
+
+System_Boundary(digital, "АгроПром Х - Цифровая платформа") {
+  Container(iot, "IoT-платформа", "", "Подключить оборудование ферм", $tags="changed")
+  Container(portal, "Веб-портал и мобильное приложение", "", "Разделы мониторинга ферм", $tags="changed")
+  ContainerQueue(kafka, "Kafka", "", "Шина данных", $tags="existing")
+  Container(erp, "1С:Агро", "", "", $tags="existing")
+  Container(module, "Модуль мониторинга скота", "REST API", "Поголовье, кормление, вода, прогноз корма, конфигурация агентов, метрики")
+  Container(iam, "Сервис авторизации", "", "Вход, роли")
+  ContainerDb(db, "БД модуля", "PostgreSQL")
+}
+
+Rel(cameras, video, "Видео", "RTSP")
+Rel(video, edge, "Детекции, мс", "gRPC")
+Rel(edge, operator, "Оповещение до 5 сек")
+Rel(edge, sms, "SMS без интернета")
+Rel(edge, kafka, "События, досылка после связи")
+Rel(kafka, edge, "Конфигурация, модель")
+
+Rel(equipment, iot, "Телеметрия / команды", "MQTT через интернет")
+Rel(iot, kafka, "Телеметрия")
+Rel(kafka, iot, "Команды")
+Rel(kafka, module, "События, телеметрия")
+Rel(module, kafka, "Команды, конфигурация, метрики")
+Rel(module, db, "")
+Rel(module, erp, "Потребность в корме", "REST")
+
+Rel(manager, portal, "Использует")
+Rel(portal, module, "", "REST")
+Rel(portal, iam, "Вход")
+
+@enduml
